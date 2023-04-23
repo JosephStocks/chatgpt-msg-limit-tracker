@@ -12,21 +12,25 @@
 (async function () {
   "use strict";
 
+  const MESSAGE_LOG_KEY = "messageLog";
+  const EJECTION_INTERVAL = 60 * 1000; // 60 seconds
+  const THREE_HOURS = 3 * 60 * 60 * 1000;
+
   // Load the message log from localStorage or initialize an empty array
-  let messageLog = JSON.parse(localStorage.getItem("messageLog")) || [];
+  let messageLog = JSON.parse(localStorage.getItem(MESSAGE_LOG_KEY)) || [];
 
   // Save the message log to localStorage
   function saveMessageLog() {
-    localStorage.setItem("messageLog", JSON.stringify(messageLog));
+    localStorage.setItem(MESSAGE_LOG_KEY, JSON.stringify(messageLog));
   }
 
   // Update message counter
   function updateMessageCounter() {
-    messageCounter.innerText = `Message count: ${messageLog.length}`;
+    messageCounter.textContent = `Message count: ${messageLog.length}`;
   }
 
   function ejectOldMessages() {
-    const threeHoursAgo = Date.now() - 3 * 60 * 60 * 1000;
+    const threeHoursAgo = Date.now() - THREE_HOURS;
     messageLog = messageLog.filter(
       (message) => message.timestamp >= threeHoursAgo
     );
@@ -46,6 +50,12 @@
   }
 
   function getGPTModelString() {
+    const startElement = document.querySelector(
+      "#headlessui-listbox-button-\\:r0\\: > span.inline-flex.w-full.truncate"
+    );
+    if (startElement) {
+      return startElement.textContent;
+    }
     const modelElement = document.querySelector(
       "main > div.flex-1.overflow-hidden > div > div > div > div.flex.w-full.items-center.justify-center.gap-1.border-b.border-black\\/10.bg-gray-50.p-3.text-gray-500.dark\\:border-gray-900\\/50.dark\\:bg-gray-700.dark\\:text-gray-300"
     );
@@ -63,7 +73,7 @@
     }
   }
 
-  // display all messages with how long ago they were asked
+  // Display all messages with how long ago they were asked
   function displayMessageLog() {
     const now = Date.now();
     const humanReadableMessageLog = messageLog.map(
@@ -78,18 +88,20 @@
   // Create and style a text box for the message count
   const messageCounter = document.createElement("div");
   messageCounter.id = "messageCounter";
-  messageCounter.style.position = "fixed";
-  messageCounter.style.top = "10px";
-  messageCounter.style.right = "10px";
-  messageCounter.style.backgroundColor = "#fff";
-  messageCounter.style.color = "#000";
-  messageCounter.style.border = "1px solid #ccc";
-  messageCounter.style.padding = "5px 10px";
-  messageCounter.style.borderRadius = "5px";
-  messageCounter.style.fontFamily = "Arial, sans-serif";
-  messageCounter.style.fontSize = "14px";
-  messageCounter.style.zIndex = "9999";
-  messageCounter.innerText = "Message count: 0";
+  messageCounter.style.cssText = `
+    position: fixed;
+    top: 10px;
+    right: 10px;  
+    background-color: #fff;
+    color: #000;
+    border: 1px solid #ccc;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    z-index: 9999;
+  `;
+  messageCounter.textContent = "Message count: 0";
   document.body.appendChild(messageCounter);
 
   // Function to intercept and log fetch POST requests
@@ -105,7 +117,6 @@
       ) {
         if (init.body) {
           const bodyData = await parseBodyData(init.body);
-
           console.log("bodyData", bodyData);
 
           const timestamp = Date.now();
@@ -131,7 +142,7 @@
   window.fetch = interceptFetch(window.fetch);
 
   // Periodically eject messages older than 3 hours every 60 seconds
-  setInterval(ejectOldMessages, 60 * 1000);
+  setInterval(ejectOldMessages, EJECTION_INTERVAL);
 
   // Update the message counter with the initial message count from localStorage
   updateMessageCounter();
