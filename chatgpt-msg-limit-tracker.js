@@ -15,6 +15,7 @@
   const MESSAGE_LOG_KEY = "messageLog";
   const EJECTION_INTERVAL = 60 * 1000; // 60 seconds
   const THREE_HOURS = 3 * 60 * 60 * 1000;
+  const GPT_VERSION = "GPT-4";
 
   // Load the message log from localStorage or initialize an empty array
   let messageLog = JSON.parse(localStorage.getItem(MESSAGE_LOG_KEY)) || [];
@@ -26,7 +27,7 @@
 
   // Update message counter
   function updateMessageCounter() {
-    messageCounter.textContent = `Message count: ${messageLog.length}`;
+    messageCounter.textContent = `${GPT_VERSION} message count: ${messageLog.length}`;
   }
 
   function ejectOldMessages() {
@@ -57,7 +58,10 @@
       return startElement.textContent;
     }
     const modelElement = document.querySelector(
-      "main > div.flex-1.overflow-hidden > div > div > div > div.flex.w-full.items-center.justify-center.gap-1.border-b.border-black\\/10.bg-gray-50.p-3.text-gray-500.dark\\:border-gray-900\\/50.dark\\:bg-gray-700.dark\\:text-gray-300"
+      "main > div.flex-1.overflow-hidden > div > div > div >" +
+        " div.flex.w-full.items-center.justify-center.gap-1." +
+        "border-b.border-black\\/10.bg-gray-50.p-3.text-gray-500" +
+        ".dark\\:border-gray-900\\/50.dark\\:bg-gray-700.dark\\:text-gray-300"
     );
     return modelElement ? modelElement.textContent : "";
   }
@@ -101,7 +105,7 @@
     font-size: 14px;
     z-index: 9999;
   `;
-  messageCounter.textContent = "Message count: 0";
+  messageCounter.textContent = `${GPT_VERSION} message count: 0`;
   document.body.appendChild(messageCounter);
 
   // Function to intercept and log fetch POST requests
@@ -113,7 +117,7 @@
         init &&
         init.method &&
         init.method.toUpperCase() === "POST" &&
-        getGPTModelString().includes("GPT-3.5")
+        getGPTModelString().includes(GPT_VERSION)
       ) {
         if (init.body) {
           const bodyData = await parseBodyData(init.body);
