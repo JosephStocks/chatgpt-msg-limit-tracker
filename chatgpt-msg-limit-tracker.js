@@ -9,7 +9,7 @@
 // @grant        none
 // ==/UserScript==
 
-(function () {
+(async function () {
   "use strict";
 
   // Load the message log from localStorage or initialize an empty array
@@ -32,6 +32,7 @@
     );
     saveMessageLog();
     updateMessageCounter();
+    displayMessageLog();
   }
 
   async function parseBodyData(body) {
@@ -45,9 +46,33 @@
   }
 
   function getGPTModelString() {
-    return document.querySelector(
+    const modelElement = document.querySelector(
       "main > div.flex-1.overflow-hidden > div > div > div > div.flex.w-full.items-center.justify-center.gap-1.border-b.border-black\\/10.bg-gray-50.p-3.text-gray-500.dark\\:border-gray-900\\/50.dark\\:bg-gray-700.dark\\:text-gray-300"
-    ).textContent;
+    );
+    return modelElement ? modelElement.textContent : "";
+  }
+
+  function buildTimeAgoString(timeDiffInMs) {
+    const timeDiffSeconds = timeDiffInMs / 1000;
+    if (timeDiffSeconds < 60) {
+      return `${timeDiffSeconds.toFixed(1)} seconds ago`;
+    } else if (timeDiffSeconds < 60 * 60) {
+      return `${(timeDiffSeconds / 60).toFixed(1)} minutes ago`;
+    } else {
+      return `${(timeDiffSeconds / (60 * 60)).toFixed(1)} hours ago`;
+    }
+  }
+
+  // display all messages with how long ago they were asked
+  function displayMessageLog() {
+    const now = Date.now();
+    const humanReadableMessageLog = messageLog.map(
+      ({ message, timestamp }) => ({
+        message,
+        timeAgo: buildTimeAgoString(now - timestamp),
+      })
+    );
+    console.log("humanReadableMessageLog", humanReadableMessageLog);
   }
 
   // Create and style a text box for the message count
@@ -76,21 +101,22 @@
         init &&
         init.method &&
         init.method.toUpperCase() === "POST" &&
-        getGPTModelString().includes("GPT-4")
+        getGPTModelString().includes("GPT-3.5")
       ) {
         if (init.body) {
           const bodyData = await parseBodyData(init.body);
 
+          console.log("bodyData", bodyData);
+
           const timestamp = Date.now();
           messageLog.push({
-            messages: bodyData.messages[0].content.parts,
+            message: bodyData.messages[0].content.parts[0],
             timestamp,
           });
           saveMessageLog();
           console.log(
             "POST conversation fetch request message logged with timestamp:",
-            bodyData,
-            bodyData.messages[0].content.parts
+            messageLog
           );
 
           // Eject messages older than 3 hours
@@ -109,6 +135,7 @@
 
   // Update the message counter with the initial message count from localStorage
   updateMessageCounter();
+  displayMessageLog();
 
   console.log(
     "OpenAI Chat Conversation Fetch POST Detector with Persistent Message Log and UI Counter active."
